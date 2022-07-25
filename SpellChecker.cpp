@@ -36,6 +36,24 @@ unsigned int hash(char* spell)
     return res;
 }
 
+unsigned int hash(char* s1, int n1, char* s2, int n2)
+{
+    unsigned int res = 0;
+    unsigned int coefficient = 1;
+    for(int i = 0; i < n1; i++)
+    {
+        res += unsigned(s1[i]) * coefficient;
+        coefficient *= 256;
+    }
+    coefficient = 65536;
+    for(int i = 0; i < n2; i++)
+    {
+        res += unsigned(s2[i]) * coefficient;
+        coefficient *= 256;
+    }
+    return res;
+}
+
 char* SpellCheckCpp(char* typo, Voctrie* voctrie, Substitutions* substitutions)
 {
     std::unordered_map<int, double> submap;
@@ -44,17 +62,17 @@ char* SpellCheckCpp(char* typo, Voctrie* voctrie, Substitutions* substitutions)
             submap.insert(std::make_pair(hash(substitutions->spell[i]), substitutions->p[i]));
     }
 
-    double Mp[22][22];
+    double Mp[100][100];
     double maxp = 0;
-    char* output = "-ERROR-";
+    char* output = voctrie->word[0];
     int typolen = strlen(typo);
     for(int k = 0; k < voctrie->N; k++)
     {
         char* vocword = voctrie->word[k];
         int i0 = voctrie->prelen[k];
-        char spell[22];
         double p;
         int voclen = strlen(vocword);
+        int key;
         for(int i = i0; i < voclen; i++)
         {
             for(int j = -1; j < typolen; j++)
@@ -62,26 +80,20 @@ char* SpellCheckCpp(char* typo, Voctrie* voctrie, Substitutions* substitutions)
                 p = 0;
                 if((i<2) && (j<2))
                 {
-                    strncpy(spell, vocword, i+1);
-                    spell[i+1] = '>';
-                    strncpy(spell + i+2, typo, j+1);
-                    spell[i+j+3] = '\0';
-                    if(submap.find(hash(spell)) != submap.end()) p = submap.at(hash(spell));
+                    key = hash(vocword, i+1, typo, j+1);
+                    if(submap.find(key) != submap.end()) p = submap.at(key);
                 }
-                for(int n = std::max(i-2, -1); n < i+1; n++)
+                for(int n = (i-2 > -1)?(i-2):(-1); n < i+1; n++)
                 {
-                    for(int m = std::max(j-2, -1); m < j+1; m++)
+                    for(int m = (j-2 > -1)?(j-2):(-1); m < j+1; m++)
                     {
                         if((n!=i)||(m!=j))
                         {
-                            strncpy(spell, vocword + n + 1, i-n);
-                            spell[i-n] = '>';
-                            strncpy(spell + i-n+1, typo + m + 1, j-m);
-                            spell[i-n+j-m+1] = '\0';
                             double nextP = 0;
-                            if(submap.find(hash(spell)) != submap.end())
+                            key = hash(vocword+n+1, i-n, typo+m+1, j-m);
+                            if(submap.find(key) != submap.end())
                             {
-                                nextP = Mp[n+1][m+1] * submap.at(hash(spell));
+                                nextP = Mp[n+1][m+1] * submap.at(key);
                             }
                             if(nextP > p) p = nextP;
                         }
