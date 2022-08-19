@@ -1,14 +1,13 @@
-from datetime import datetime
 import ctypes
 
-with open("substitutions.txt", "r") as rfile:
+with open("substitutions.csv", "r") as rfile:
     substitutions = {}
     for line in rfile.readlines():
-        line = line.split()
+        line = line.split(';')
         substitutions[line[0]] = float(line[1])
 
-with open("voctrie.txt", "r") as rfile:
-    voctrie = [[line.split()[0], int(line.split()[1]), float(line.split()[2])] for line in rfile.readlines()]
+with open("voctrie.csv", "r") as rfile:
+    voctrie = [[line.split(';')[0], int(line.split(';')[1]), float(line.split(';')[2])] for line in rfile.readlines()]
 
 class Voctrie(ctypes.Structure):
     _fields_ = [("word", ctypes.POINTER(ctypes.c_char_p)),
@@ -50,12 +49,32 @@ for key in substitutions:
     sb.p[i] = ctypes.c_double(substitutions[key])
     i += 1
 
-print("Введите слово")
-typo = input()
-while typo != "exit":
-    start_time = datetime.now()
-    output = cfunc.SpellCheck(typo.encode("utf-8"), ctypes.byref(vt), ctypes.byref(sb)).decode("utf-8")
-    print(datetime.now() - start_time)
+vocabulary = set()
+for line in voctrie:
+    vocabulary.add(line[0])
+
+print("-", end=" ")
+inputStr = input()
+while inputStr != "exit":
+    output = ""
+    i = 0
+    while i < len(inputStr):
+        if(inputStr[i].isalpha()):
+            j = i + 1
+            while True:
+                if j < len(inputStr):
+                    if inputStr[j].isalpha():
+                        j += 1
+                        continue
+                if inputStr[i:j] in vocabulary:
+                    output += inputStr[i:j]
+                else:
+                    output += cfunc.SpellCheck(inputStr[i:j].encode("utf-8"), ctypes.byref(vt), ctypes.byref(sb)).decode("utf-8")
+                i = j
+                break
+        else:
+            output += inputStr[i]
+            i += 1
     print("Возможно, вы имели ввиду:", output)
-    print("Введите слово")
-    typo = input()
+    print("-", end=" ")
+    inputStr = input()
