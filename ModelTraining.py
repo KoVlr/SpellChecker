@@ -161,7 +161,7 @@ def CreateVoctrie(vocabulary):
 
 
 
-wordFreq = wordCounter("reviews.txt")
+wordFreq = wordCounter("dataset.txt")
 with open("vocwords.txt", "r") as rfile:
     vocwords = [line[:-1] for line in rfile.readlines()]
 typos = SelectionTypos(wordFreq, vocwords)
